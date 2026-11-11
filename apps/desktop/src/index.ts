@@ -7,6 +7,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { existsSync, writeAtomicSync } from "@toonflow/file";
 import { file } from "@toonflow/file/bun";
 import { resolve } from "node:path";
+import { homedir } from "node:os";
 import { promisify } from "node:util";
 import { dlopen, ptr } from "bun:ffi";
 import type { DesktopRuntime, PluginInstallRequest } from "@toonflow/server/desktop";
@@ -84,6 +85,17 @@ async function restoreInstallRegistration(installDirectory: string) {
       console.error("恢复桌面安装注册信息失败：", error);
     }
   }
+}
+
+async function refreshMacInstallRegistration() {
+  if (process.platform !== "darwin") return;
+  const { identifier, channel } = await file(resolve(PATHS.RESOURCES_FOLDER, "version.json")).json();
+  if (typeof identifier !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(identifier)
+    || !["dev", "canary", "beta", "stable"].includes(channel)) throw new Error("应用更新身份无效");
+  const channelRoot = resolve(homedir(), "Library/Application Support", identifier, channel);
+  // 拖入 Applications 或移动应用后，SDK 留下的旧登记可能仍指向开发目录。
+  // 由当前包内的原生管理器验证身份并重建登记，不绕过更新器的路径校验。
+  await execFileAsync(resolve(PATHS.RESOURCES_FOLDER, "uninstall"), ["--bootstrap-install", channelRoot, "--quiet"], { timeout: 30000 });
 }
 
 async function start() {
@@ -448,6 +460,7 @@ async function start() {
           isShowing = true;
           // ACT: 安装器已完成注册；更新后的修复仅首次展示时执行，不阻塞主窗口。
           void restoreInstallRegistration(installDirectory);
+          void refreshMacInstallRegistration().catch(error => console.error("刷新 macOS 安装登记失败：", error));
         }
         if (failed && !connection.remote) {
           if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER, true);
@@ -482,6 +495,7 @@ async function start() {
         downloadUpdate: systemManaged ? undefined : updater.downloadUpdate,
         applyUpdate: systemManaged ? undefined : async () => {
           if (!await confirmQuit()) throw new Error(t`更新重启已取消`);
+          await refreshMacInstallRegistration();
           // ACT: 只批准这次更新调用链中的退出；普通关闭仍需确认，更新失败后不会留下全局放行状态。
           await quitApproval.run(true, () => updater.applyUpdate());
         },
