@@ -6,8 +6,8 @@ on:
       target:
         description: 构建平台
         type: choice
-        default: windowsX64
-        options: [windowsX64, windowsArm64, macArm64, macX64, linuxX64, linuxArm64, androidArm64, all]
+        default: desktopClients
+        options: [desktopClients, windowsX64, windowsArm64, macArm64, macX64, linuxX64, linuxArm64, androidArm64, all]
       ref:
         description: 代码分支、标签或提交；签名构建要求与所选工作流版本为同一提交
         type: string
@@ -107,7 +107,7 @@ jobs:
             { target: "androidArm64", os: "windows-2025", platform: "win32", arch: "x64", releaseFolder: "build/mobile/releases" },
           ];
           const selected = process.env.buildTarget || "all";
-          const include = targets.filter(item => selected === "all" || item.target === selected);
+          const include = targets.filter(item => selected === "all" || selected === "desktopClients" && ["windowsX64", "macArm64"].includes(item.target) || item.target === selected);
           if (!include.length) throw new Error(`不支持的构建平台：${selected}`);
           const refVersion = /^v\d+\.\d+\.\d+$/.test(process.env.buildRef ?? "") ? process.env.buildRef : "";
           const version = (process.env.buildVersion?.trim() || refVersion || config.app.version).replace(/^v/, "");
@@ -127,7 +127,7 @@ jobs:
     env:
       appVersion: ${{ needs.prepare.outputs.version }}
       releaseMode: ${{ inputs.generatePatch && '--auto' || '--initial' }}
-      macCodesign: ${{ matrix.platform == 'darwin' && '1' || '0' }}
+      macCodesign: ${{ matrix.platform == 'darwin' && secrets.MACOS_CERTIFICATE_BASE64 != '' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -201,7 +201,7 @@ jobs:
           androidRelease: ${{ inputs.androidRelease && '1' || '0' }}
         run: bun run --cwd apps/mobile build
       - name: 准备 macOS 签名与公证凭据
-        if: matrix.platform == 'darwin'
+        if: matrix.platform == 'darwin' && env.macCodesign == '1'
         id: signing
         env:
           certificateBase64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
@@ -253,7 +253,7 @@ jobs:
           printf 'identity=%s\n' "$identity" >> "$GITHUB_OUTPUT"
           printf 'notarizationKeyPath=%s\n' "$notarizationKeyPath" >> "$GITHUB_OUTPUT"
       - name: 为 Apple 公证票据网络错误启用有限重试
-        if: matrix.platform == 'darwin'
+        if: matrix.platform == 'darwin' && env.macCodesign == '1'
         run: |
           bun -e '
           import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "@toonflow/file";
@@ -266,7 +266,7 @@ jobs:
           chmodSync(target, 0o755);
           writeFileSync(process.env.GITHUB_PATH, `${directory}\n`, { flag: "a" });
           '
-      - name: 构建 macOS 安装包及更新文件（自动签名与公证）
+      - name: 构建 macOS 安装包及更新文件
         if: runner.os == 'macOS'
         env:
           ELECTROBUN_DEVELOPER_ID: ${{ steps.signing.outputs.identity }}
@@ -290,6 +290,7 @@ jobs:
           packageArchitecture: ${{ matrix.arch }}
         run: |
           verifyMacArtifact() {
+            codesign --verify --deep --strict --verbose=2 "$1"
             if [[ "$macCodesign" == '1' ]]; then
               codesign --verify --deep --strict --verbose=2 \
                 --test-requirement "=anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf = H\"$signingIdentity\"" "$1"
@@ -309,15 +310,15 @@ jobs:
           await write(join(process.env.inspectionDirectory, "app.tar"), Bun.zstdDecompressSync(await file(join(directory, archives[0])).arrayBuffer()));
           '
           tar -xf "$inspectionDirectory/app.tar" -C "$inspectionDirectory"
-          app="$inspectionDirectory/toonflow.app"
+          app="$inspectionDirectory/NovaFlow Creator.app"
           test -s "$app/Contents/Resources/AppIcon.icns"
           test -s "$app/Contents/Resources/app/bun/index.js"
           test -x "$app/Contents/MacOS/bun"
           verifyMacArtifact "$app"
-          dmgPath="$releaseDirectory/toonflow-$appVersion-macos-$packageArchitecture.dmg"
+          dmgPath="$releaseDirectory/novaFlowCreator-$appVersion-macos-$packageArchitecture.dmg"
           test -s "$dmgPath"
           hdiutil verify "$dmgPath"
-          verifyMacArtifact "$dmgPath"
+          if [[ "$macCodesign" == '1' ]]; then verifyMacArtifact "$dmgPath"; fi
           if [[ "$macCodesign" == '1' ]]; then
             spctl --assess --type open --context context:primary-signature --verbose=2 "$dmgPath"
           fi
@@ -326,11 +327,11 @@ jobs:
           hdiutil attach "$dmgPath" -readonly -nobrowse -mountpoint "$mountDirectory"
           trap 'hdiutil detach "$mountDirectory"' EXIT
           mountedApps=("$mountDirectory"/*.app)
-          if [[ ${#mountedApps[@]} -ne 1 || "${mountedApps[0]}" != "$mountDirectory/toonflow.app" ]]; then
-            echo '::error::DMG 必须包含且仅包含一个 toonflow.app。'
+          if [[ ${#mountedApps[@]} -ne 1 || "${mountedApps[0]}" != "$mountDirectory/NovaFlow Creator.app" ]]; then
+            echo '::error::DMG 必须包含且仅包含一个 NovaFlow Creator.app。'
             exit 1
           fi
-          app="$mountDirectory/toonflow.app"
+          app="$mountDirectory/NovaFlow Creator.app"
           test -s "$app/Contents/Resources/AppIcon.icns"
           test -s "$app/Contents/Resources/app/bun/index.js"
           test -x "$app/Contents/MacOS/bun"

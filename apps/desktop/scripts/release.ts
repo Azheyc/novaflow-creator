@@ -95,7 +95,7 @@ if (manifest.version !== version) {
 const names: string[] = [manifest.artifact.file];
 if (isMac) names.push(`novaFlowCreator-${version}-macos-${process.arch}.dmg`);
 else if (platform === "linux") names.push(`toonflow-${version}-linux-${process.arch}.deb`);
-else names.push(`toonflow-${version}${process.arch === "arm64" ? "-win-arm64" : ""}-Setup.exe`);
+else names.push(`novaFlowCreator-${version}-win-${process.arch}-setup.exe`);
 if (previousHash) names.push(`${prefix}-${previousHash}.patch`);
 for (const name of names) {
   if (!existsSync(join(artifactDir, name))) throw new Error(`构建产物缺失，未创建发布快照：${name}`);

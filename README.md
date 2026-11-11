@@ -4,9 +4,13 @@
 
 ## 下载
 
-在 [GitHub Releases](https://github.com/Azheyc/novaflow-creator/releases/latest) 下载客户端。当前发行包支持 macOS Apple Silicon（ARM64）。应用尚未进行 Apple Developer ID 签名和公证。
+在 [GitHub Releases](https://github.com/Azheyc/novaflow-creator/releases/latest) 下载客户端。发行目标为 macOS Apple Silicon（ARM64）和 Windows Intel / AMD（x64），安装包在同一个版本发布页提供。macOS 应用尚未进行 Apple Developer ID 签名和公证。
 
 安装步骤、系统拦截处理和签名状态见下方的 [macOS 安装与签名](#macos-安装与签名)。
+
+## Windows 安装
+
+在 Releases 下载 `novaFlowCreator-版本号-win-x64-setup.exe`，运行安装程序并按提示完成安装。客户端需要 WebView2，安装程序会检测并引导安装。当前未配置 Windows 代码签名证书，首次下载可能提示未知发布者或 SmartScreen 拦截，请核对本仓库来源和 `sha256.txt`。
 
 ## 使用
 
@@ -66,6 +70,8 @@ bun run --cwd apps/server typecheck
 bun run --cwd apps/desktop typecheck
 bun run release:desktop 2.0.4
 ```
+
+GitHub Actions 的“Release NovaFlow”流程默认同时构建 macOS ARM64 和 Windows x64，两个构建均成功后才将安装包、完整更新归档、更新清单和 SHA256 发布到同一个 Release。
 
 桌面版本快照位于 `build/desktop/releases/`，包含安装包、更新归档和更新清单。后续发布需要增加版本号，将同一快照的全部文件上传到对应 GitHub Release；不要单独替换清单。更新默认从本仓库 Releases 获取。
 
