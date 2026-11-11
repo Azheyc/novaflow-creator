@@ -35,8 +35,9 @@ export function creatorMediaSources() {
           id: model.model_id, label: model.label, type: model.kind,
           ...(options ? { imageSizes: options.imageSizes, imageRatios: options.imageRatios } : {}),
           mode: model.kind === "image" ? ["text", "singleImage", "multiReference"] : ["text", "startFrameOptional", "endFrameOptional", ["imageReference:64", "videoReference:64", "audioReference:64"]],
-          rules: model.kind === "image" ? [{ type: "input", field: "size", title: "尺寸", value: "", props: { placeholder: options ? "例如 1024x1024，留空使用上方分辨率与比例" : "例如 1024x1024，留空使用模型默认值" } }]
-            : [{ type: "input", field: "size", title: "尺寸", value: "", props: { placeholder: "例如 1280x720，留空使用模型默认值" } }, { type: "inputNumber", field: "seconds", title: "时长（秒）", value: 5, props: { min: 1, max: 3600 } }],
+          // 节点参数面板直接根据 rules 渲染；不再提供自定义像素尺寸输入。
+          rules: model.kind === "image" ? []
+            : [{ type: "inputNumber", field: "seconds", title: "时长（秒）", value: 5, props: { min: 1, max: 3600 } }],
         };
       }),
     };
@@ -76,6 +77,10 @@ async function appendMedia(form, field, input, index) {
 }
 function parameters(input) {
  const extra = { ...(input.other || {}) };
+ // 旧节点可能保存过已移除的像素尺寸，不能继续隐式覆盖可见的分辨率/比例。
+ delete extra.size;
+ delete extra.width;
+ delete extra.height;
  for (const key of ["model", "prompt", "Authorization", "apiKey", "headers", "group", "base_url"]) {
   if (key in extra) throw new Error("扩展参数不能覆盖 " + key);
  }
@@ -98,7 +103,7 @@ async function generateImage(input) {
    const size = dimensions[input.size + ":" + (input.ratio || "1:1")];
    if (!size) throw new Error("当前模型不支持所选分辨率或比例，请重新选择");
    body.size = size;
-  } else throw new Error("当前模型未声明此分辨率，请在尺寸中填写像素宽高，例如 1024x1024");
+  } else throw new Error("当前模型未声明此分辨率，请刷新模型目录并选择支持的分辨率");
  }
  if (!dimensions && input.ratio) body.aspect_ratio = input.ratio;
  for (const [key,value] of Object.entries({ quality: input.quality, output_format: input.outputFormat })) if (value !== undefined && value !== "") body[key] = value;
