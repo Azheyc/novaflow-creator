@@ -1,6 +1,25 @@
 import { creatorFetch, managedProviderId } from "./providers";
 import { credentials, currentSession, novaFlowOrigin } from "./session";
 
+function imageOptions(model: string) {
+  const gpt2 = /^gpt-image-2/i.test(model);
+  const gpt = /^gpt-image/i.test(model);
+  const dalle3 = /^dall-e-3$/i.test(model);
+  if (!gpt && !/^dall-e/i.test(model)) return undefined;
+  const imageSizes = gpt2 ? ["1K", "2K", "4K"] : ["1K"];
+  const imageRatios = gpt2 ? ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"]
+    : gpt || dalle3 ? ["1:1", "3:2", "2:3"] : ["1:1"];
+  const dimensions: Record<string, string> = {};
+  for (const size of imageSizes) for (const ratio of imageRatios) {
+    const [width, height] = ratio.split(":").map(Number) as [number, number];
+    const edge = Number.parseInt(size) * 1024;
+    dimensions[`${size}:${ratio}`] = gpt2
+      ? `${Math.round(edge * width / Math.max(width, height) / 16) * 16}x${Math.round(edge * height / Math.max(width, height) / 16) * 16}`
+      : ratio === "1:1" ? "1024x1024" : ratio === "3:2" ? `${dalle3 ? 1792 : 1536}x1024` : `1024x${dalle3 ? 1792 : 1536}`;
+  }
+  return { imageSizes, imageRatios, dimensions };
+}
+
 export function creatorMediaSources() {
   const session = currentSession();
   if (!session) return [];
@@ -10,22 +29,29 @@ export function creatorMediaSources() {
     const id = managedProviderId(session.identity.user_id, session.identity.identity_scope, group, "media");
     const definition = {
       id, label: `NovaFlow · ${models[0]!.group_name}`, version: "1.0.0", rules: [],
-      models: models.map(model => ({ id: model.model_id, label: model.label, type: model.kind,
-        mode: model.kind === "image" ? ["text", "singleImage", "multiReference"] : ["text", "startFrameOptional", "endFrameOptional", ["imageReference:64", "videoReference:64", "audioReference:64"]],
-        rules: model.kind === "image" ? [{ type: "input", field: "size", title: "尺寸", value: "", props: { placeholder: "例如 1024x1024，留空使用模型默认值" } }]
-          : [{ type: "input", field: "size", title: "尺寸", value: "", props: { placeholder: "例如 1280x720，留空使用模型默认值" } }, { type: "inputNumber", field: "seconds", title: "时长（秒）", value: 5, props: { min: 1, max: 3600 } }],
-      })),
+      models: models.map(model => {
+        const options = model.kind === "image" ? imageOptions(model.model_id) : undefined;
+        return {
+          id: model.model_id, label: model.label, type: model.kind,
+          ...(options ? { imageSizes: options.imageSizes, imageRatios: options.imageRatios } : {}),
+          mode: model.kind === "image" ? ["text", "singleImage", "multiReference"] : ["text", "startFrameOptional", "endFrameOptional", ["imageReference:64", "videoReference:64", "audioReference:64"]],
+          rules: model.kind === "image" ? [{ type: "input", field: "size", title: "尺寸", value: "", props: { placeholder: options ? "例如 1024x1024，留空使用上方分辨率与比例" : "例如 1024x1024，留空使用模型默认值" } }]
+            : [{ type: "input", field: "size", title: "尺寸", value: "", props: { placeholder: "例如 1280x720，留空使用模型默认值" } }, { type: "inputNumber", field: "seconds", title: "时长（秒）", value: 5, props: { min: 1, max: 3600 } }],
+        };
+      }),
     };
     const identity = { userId: session.identity.user_id, scope: session.identity.identity_scope, group };
     const source = mediaRuntime + "\nexport default {" + JSON.stringify(definition).slice(1, -1) + ", generateImage, generateVideo, resumeTask };";
-    return { id, group, identity, source, label: definition.label };
+    const imageDimensions = Object.fromEntries(models.filter(model => model.kind === "image")
+      .map(model => [model.model_id, imageOptions(model.model_id)?.dimensions]));
+    return { id, group, identity, source, label: definition.label, imageDimensions };
   });
 }
 export async function creatorMediaExecution(id: string, source: string) {
   const session = await credentials();
   const entry = creatorMediaSources().find(item => item.id === id);
   if (!entry || entry.source !== source) throw new Error("NovaFlow 模型配置或账号已变更，请刷新后重试");
-  return { config: { origin: novaFlowOrigin, ...entry.identity }, fetch: creatorFetch(session.sessionId, entry.group) };
+  return { config: { origin: novaFlowOrigin, ...entry.identity, imageDimensions: entry.imageDimensions }, fetch: creatorFetch(session.sessionId, entry.group) };
 }
 
 const mediaRuntime = String.raw`
@@ -65,7 +91,17 @@ async function generateImage(input) {
  const body = { ...parameters(input), model: input.model, prompt: input.prompt };
  if (input.n !== undefined) body.n = input.n;
  if (body.n !== undefined && (!Number.isInteger(body.n) || body.n < 1 || body.n > 128)) throw new Error("图片数量无效");
- for (const [key,value] of Object.entries({ size: input.size, quality: input.quality, output_format: input.outputFormat, aspect_ratio: input.ratio })) if (value !== undefined && value !== "") body[key] = value;
+ const dimensions = this.config.imageDimensions?.[input.model];
+ if (!body.size && input.size) {
+  if (/^\d+x\d+$/.test(input.size) || input.size === "auto") body.size = input.size;
+  else if (dimensions) {
+   const size = dimensions[input.size + ":" + (input.ratio || "1:1")];
+   if (!size) throw new Error("当前模型不支持所选分辨率或比例，请重新选择");
+   body.size = size;
+  } else throw new Error("当前模型未声明此分辨率，请在尺寸中填写像素宽高，例如 1024x1024");
+ }
+ if (!dimensions && input.ratio) body.aspect_ratio = input.ratio;
+ for (const [key,value] of Object.entries({ quality: input.quality, output_format: input.outputFormat })) if (value !== undefined && value !== "") body[key] = value;
  await this.saveTaskData?.({ kind: "imageSubmitting", model: input.model, ...identity(this) });
  let response;
  if (input.images?.length || input.mask) {
