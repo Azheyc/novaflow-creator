@@ -7,6 +7,7 @@ export type Project = {
   directory: string;
   name: string;
   lastOpenedAt: number;
+  lastCanvasId?: string;
 };
 
 export const useWorkspaceStore = defineStore("workspace", () => {
@@ -26,7 +27,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     const checkedDirectory = data.data.directory;
     const existing = projectList.value.find(project => project.directory === previousDirectory)
       ?? projectList.value.find(project => project.directory === checkedDirectory);
-    const added = { directory: checkedDirectory, name: name?.trim() || existing?.name || checkedDirectory.split(/[\\/]/).filter(Boolean).at(-1) || checkedDirectory, lastOpenedAt: Date.now() };
+    const added = { directory: checkedDirectory, name: name?.trim() || existing?.name || checkedDirectory.split(/[\\/]/).filter(Boolean).at(-1) || checkedDirectory, lastOpenedAt: Date.now(), lastCanvasId: existing?.lastCanvasId };
     projectList.value = [
       added,
       ...projectList.value.filter(item => item.directory !== previousDirectory && item.directory !== checkedDirectory),
@@ -51,7 +52,13 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     if (project.value?.directory === path) project.value = null;
   }
 
-  return { project, projectList, projectLoading, projectLoadingDrawn, projectLoadingVisible, pendingAgentMessage, addProject, openProject, renameProject, removeProject };
+  function rememberCanvas(directory: string, canvasId: string) {
+    const target = projectList.value.find(item => item.directory === directory);
+    if (target && target.lastCanvasId !== canvasId) target.lastCanvasId = canvasId;
+    if (project.value?.directory === directory && project.value.lastCanvasId !== canvasId) project.value.lastCanvasId = canvasId;
+  }
+
+  return { project, projectList, projectLoading, projectLoadingDrawn, projectLoadingVisible, pendingAgentMessage, addProject, openProject, renameProject, removeProject, rememberCanvas };
 }, {
   persist: {
     key: "toonflow.projectList",

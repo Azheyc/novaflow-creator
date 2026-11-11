@@ -299,6 +299,19 @@ watch(() => props.directory, async (directory, _previous, onCleanup) => {
       await applyCanvas(props.initialCanvasId, directory);
       return;
     }
+    const rememberedCanvas = workspaceStore.project?.directory === directory ? workspaceStore.project.lastCanvasId : undefined;
+    if (rememberedCanvas) {
+      try {
+        await loadDirectory(parentPath(rememberedCanvas));
+      } catch (error) {
+        if (!axios.isAxiosError(error) || error.response?.status !== 404 && error.response?.data?.data?.code !== "ENOENT") throw error;
+      }
+      if (cancelled) return;
+      if (canvases.value.some(canvas => canvas.id === rememberedCanvas)) {
+        await applyCanvas(rememberedCanvas, directory, controller.signal);
+        return;
+      }
+    }
     await loadDirectory("");
     // ACT: 根目录无画布时逐层查找，找到即停止；其余目录仍按需加载。
     for (let index = 0; !canvases.value.length && index < folders.value.length; index++) {

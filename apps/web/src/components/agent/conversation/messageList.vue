@@ -40,20 +40,30 @@
                 <span v-if="item.role === 'user' && item.delivery?.mode === 'steer'" class="steeringLabel" title="当前任务的补充引导，已完成的操作不会撤销"><icon-corner-down-right :size="14" aria-hidden="true" />引导</span>
                 <div v-if="item.report" class="reportHeader"><icon-users-group :size="14" />{{ item.report.name }} 上报</div>
                 <div v-if="item.agentMessage" class="reportHeader"><icon-users-group :size="14" />来自 {{ item.agentMessage.fromName }} 的消息</div>
-                <template v-for="part in item.parts" :key="part.id">
-                  <chat-reasoning v-if="part.type === 'thinking' && part.content" class="messageReasoning" :collapsed="part.collapsed ?? true" expandIconPlacement="left" @update:collapsed="part.collapsed = $event">
-                    <template #expandIcon><component :is="(part.collapsed ?? true) ? IconChevronRight : IconChevronDown" :size="14" aria-hidden="true" /></template>
-                    <template #header>
-                      <span class="reasoningHeader">
-                        <icon-atom :size="14" />
-                        <span>思考</span>
-                        <span v-if="part.duration !== undefined" class="thinkingDuration">{{ part.duration.toFixed(1) }} 秒</span>
-                      </span>
+                <template v-for="section in messageSections.get(item.id)" :key="section.id">
+                  <el-button v-if="section.process" class="processToggle" text size="small" :aria-expanded="expandedProcesses.has(item.id)" :aria-controls="`agentProcess-${item.id}`" @click="toggleProcess(item.id)">
+                    <component :is="expandedProcesses.has(item.id) ? IconChevronDown : IconChevronRight" :size="14" />
+                    {{ expandedProcesses.has(item.id) ? '收起运行过程' : '展开运行过程' }}
+                    <span v-if="section.toolCount">（{{ section.toolCount }} 次工具调用）</span>
+                  </el-button>
+                  <div v-if="!section.process || expandedProcesses.has(item.id)" :id="section.process ? `agentProcess-${item.id}` : undefined" class="messageSection" :class="{ processContent: section.process }">
+                    <template v-for="part in section.parts" :key="part.id">
+                      <chat-reasoning v-if="part.type === 'thinking' && part.content" class="messageReasoning" :collapsed="part.collapsed ?? true" expandIconPlacement="left" @update:collapsed="part.collapsed = $event">
+                        <template #expandIcon><component :is="(part.collapsed ?? true) ? IconChevronRight : IconChevronDown" :size="14" aria-hidden="true" /></template>
+                        <template #header>
+                          <span class="reasoningHeader">
+                            <icon-atom :size="14" />
+                            <span>思考</span>
+                            <span v-if="part.duration !== undefined" class="thinkingDuration">{{ part.duration.toFixed(1) }} 秒</span>
+                          </span>
+                        </template>
+                        <messageMarkdown v-if="!(part.collapsed ?? true)" :content="part.content" :streaming="!!item.streaming" :directory="directory" />
+                      </chat-reasoning>
+                      <toolMessage v-else-if="part.type === 'tool' && !isBrowserTool(part.tool)" v-model:collapsed="part.collapsed" :tool="part.tool" :directory="directory" @copy="emit('copy', $event)" />
+                      <messageMarkdown v-else-if="part.type === 'text' && part.content" :content="part.content" :streaming="!!item.streaming" :directory="directory" />
                     </template>
-                    <messageMarkdown v-if="!(part.collapsed ?? true)" :content="part.content" :streaming="!!item.streaming" :directory="directory" />
-                  </chat-reasoning>
-                  <toolMessage v-else-if="part.type === 'tool' && !isBrowserTool(part.tool)" v-model:collapsed="part.collapsed" :tool="part.tool" :directory="directory" @copy="emit('copy', $event)" />
-                  <messageMarkdown v-else-if="part.type === 'text' && part.content" :content="part.content" :streaming="!!item.streaming" :directory="directory" />
+                    <browserPanel v-if="section.process && browserMessages.tools.has(item.id)" class="browserPreview" :tools="browserMessages.tools.get(item.id)!" :directory="directory" :active="active" :live="false" />
+                  </div>
                 </template>
                 <attachmentList v-if="item.attachments?.length" :attachments="item.attachments" :directory="directory" />
                 <div v-if="item.role === 'user'" class="messageText"><mentionContent :content="item.content" :mentions="item.mentions" :directory="directory" /></div>
@@ -75,7 +85,7 @@
               <el-button v-if="!item.report && !item.agentMessage" class="messageAction" text circle :loading="deletingId === item.id" :disabled="locked || remoteRunning" aria-label="删除消息" title="删除消息" @click="emit('delete', item)"><icon-trash v-if="deletingId !== item.id" :size="14" /></el-button>
             </template>
           </div>
-          <browserPanel v-if="browserMessages.tools.has(item.id)" class="browserPreview" :tools="browserMessages.tools.get(item.id)!" :directory="directory" :active="active" :live="item.id === browserMessages.liveMessageId" />
+          <browserPanel v-if="!messageSections.get(item.id)?.some(section => section.process) && browserMessages.tools.has(item.id)" class="browserPreview" :tools="browserMessages.tools.get(item.id)!" :directory="directory" :active="active" :live="item.id === browserMessages.liveMessageId" />
         </div>
       </div>
     </div>
@@ -98,12 +108,37 @@ import attachmentList from "../attachmentList.vue";
 import mentionContent from "../mentionContent.vue";
 import { mentionPlainText } from "../mentionText";
 import toolMessage from "../toolMessage.vue";
-import type { AgentMessage } from "../types";
+import type { AgentMessage, AgentMessagePart } from "../types";
 import "tdesign-vue-next/es/style/index.css";
 import "@tdesign-vue-next/chat/es/style/index.css";
 
 const props = defineProps<{ messages: AgentMessage[]; directory?: string; active: boolean; disabled: boolean; locked: boolean; busy: boolean; remoteRunning: boolean; compacting: boolean; editingId?: string; deletingId?: string; branchingId?: string; voiceActive: boolean }>();
 const emit = defineEmits<{ fillPrompt: [prompt: string]; copy: [content: string]; edit: [message: AgentMessage]; branch: [message: AgentMessage]; delete: [message: AgentMessage]; cancelEdit: [] }>();
+const expandedProcesses = ref(new Set<string>());
+function toggleProcess(id: string) {
+  if (expandedProcesses.value.has(id)) expandedProcesses.value.delete(id);
+  else expandedProcesses.value.add(id);
+  void nextTick(() => messageVirtualizer.value.measure());
+}
+type MessageSection = { id: string; parts: AgentMessagePart[]; process?: boolean; toolCount?: number };
+const messageSections = computed(() => {
+  const running = props.busy || props.remoteRunning || props.compacting;
+  const currentTask = props.messages.findLastIndex(message => message.role === "user" && message.delivery?.mode !== "steer");
+  return new Map(props.messages.map((message, index) => {
+    const parts = message.parts ?? [];
+    const boundary = parts.findLastIndex(part => part.type !== "text");
+    const finalParts = parts.slice(boundary + 1);
+    const completed = message.role === "assistant" && !message.streaming && !message.error && !message.report && !message.agentMessage
+      && !(running && index > currentTask) && !parts.some(part => part.type === "tool" && part.tool.status === "running");
+    const sections: MessageSection[] = completed && boundary >= 0 && finalParts.some(part => part.type === "text" && part.content.trim())
+      ? [{ id: "final", parts: finalParts }, { id: "process", process: true, parts: parts.slice(0, boundary + 1), toolCount: parts.filter(part => part.type === "tool").length }]
+      : [{ id: "content", parts }];
+    return [message.id, sections];
+  }));
+});
+watch(() => [...messageSections.value].filter(([, sections]) => sections.some(section => section.process)).map(([id]) => id), (current, previous) => {
+  for (const id of current) if (!previous?.includes(id)) expandedProcesses.value.delete(id);
+}, { flush: "sync" });
 const browserMessages = computed(() => {
   const groups = new Map<string, { id: string; tools: AgentToolCall[] }>();
   const taskIds = new Map<string, string>();
@@ -393,6 +428,28 @@ const welcomeSuggestions = [
       min-width: 0;
       overflow-wrap: anywhere;
       color: var(--el-text-color-primary);
+
+      .processToggle {
+        align-self: flex-start;
+        margin: 4px 0 0;
+        color: var(--el-text-color-secondary);
+        white-space: normal;
+        height: auto;
+
+        > span { gap: 4px; }
+      }
+
+      .messageSection {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .processContent {
+        padding-left: 10px;
+        border-left: 2px solid var(--el-border-color-lighter);
+      }
 
       .steeringLabel {
         display: inline-flex;

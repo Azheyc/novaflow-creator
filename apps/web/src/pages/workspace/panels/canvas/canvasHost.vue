@@ -46,6 +46,10 @@ const canvasReady = computed(() => activeInstance.value?.canvasReady ?? false);
 const canvasListReady = computed(() => activeInstance.value?.canvasListReady ?? false);
 const lifetime = new AbortController();
 const workspaceStore = useWorkspaceStore();
+const projectDirectory = workspaceStore.project?.directory;
+watch(canvasId, id => {
+  if (id && projectDirectory && workspaceStore.project?.directory === projectDirectory) workspaceStore.rememberCanvas(projectDirectory, id);
+});
 const pendingUpload = providePluginUpload();
 const canvases = shallowRef<{ id: string; name: string }[]>([]);
 let fileActionBusy = false;
