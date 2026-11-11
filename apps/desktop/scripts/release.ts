@@ -29,8 +29,10 @@ const manifestName = `${prefix}-update.json`;
 const manifestUrl = `${desktopConfig.release.baseUrl.replace(/\/+$/, "")}/${manifestName}`;
 if (existsSync(releaseDir)) throw new Error(`版本已保留，请使用新版本号：${releaseDir}`);
 
+const fullMacRelease = isMac && process.env.macCodesign !== "1";
+if (fullMacRelease && !values.initial) console.log("macOS 临时签名版本使用完整更新包，不生成增量补丁。");
 let previousResponse: Response | undefined;
-if (!values.initial) {
+if (!values.initial && !fullMacRelease) {
   console.log(`读取构建基线：${manifestUrl}`);
   try {
     previousResponse = await fetch(manifestUrl, {
@@ -40,7 +42,7 @@ if (!values.initial) {
     throw new Error("无法读取上一版本，请检查更新地址与网络；为避免漏打补丁，已停止构建。", { cause: error });
   }
 }
-let initial = values.initial || (values.auto && previousResponse?.status === 404);
+let initial = values.initial || fullMacRelease || (values.auto && previousResponse?.status === 404);
 let previousHash: string | undefined;
 if (!initial) {
   if (!previousResponse?.ok) {

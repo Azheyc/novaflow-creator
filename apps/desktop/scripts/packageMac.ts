@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, symlink } from "@toonflow/file";
+import { lstatSync, mkdirSync, mkdtempSync, realpathSync, renameSync, rmSync, symlink, writeAtomic } from "@toonflow/file";
 import { file, write } from "@toonflow/file/bun";
 import { join, resolve } from "node:path";
 import desktopConfig from "../../../electrobun.config";
@@ -64,9 +64,22 @@ try {
   if (appVersion.version !== version || appVersion.hash !== manifest.hash) throw new Error("macOS 应用与更新清单不一致。");
 
   if (signed) {
-    await run(["/usr/bin/codesign", "--verify", "--deep", "--strict", "--verbose=2", appPath]);
     if (process.env.ELECTROBUN_SKIP_NOTARIZATION !== "1") await run(["xcrun", "stapler", "validate", appPath]);
+  } else {
+    // ACT: SDK 的未签名包只保留可执行文件的链接器签名，不能验证整个 .app。
+    // 最终资源齐备后临时签名，并将同一应用重新归档，保证 DMG 和完整更新包一致。
+    // 临时签名不具备 Developer ID 信任，首次下载仍需用户在本机授权。
+    if (process.env.generateUpdatePatch === "1") throw new Error("临时签名构建仅支持完整更新包，请使用 --initial 发布。");
+    await run(["/usr/bin/codesign", "--force", "--deep", "--sign", "-", "--identifier", desktopConfig.app.identifier, appPath]);
+    const signedTar = join(stagingDir, "signedApp.tar");
+    const archive = Bun.spawn(["/usr/bin/tar", "--no-xattrs", "-cf", signedTar, "-C", applicationDir, appName], {
+      env: { ...process.env, COPYFILE_DISABLE: "1" }, stdin: "ignore", stdout: "inherit", stderr: "inherit", timeout: 600000,
+    });
+    if (await archive.exited !== 0) throw new Error("临时签名应用归档失败。");
+    await writeAtomic(join(artifactDir, archiveName), Bun.zstdCompressSync(await file(signedTar).arrayBuffer()));
   }
+  // 两种签名路径均须校验；未签名发行包不能再跳过此项。
+  await run(["/usr/bin/codesign", "--verify", "--deep", "--strict", "--verbose=2", appPath]);
 
   await symlink("/Applications", join(applicationDir, "Applications"));
   const output = join(stagingDir, outputName);

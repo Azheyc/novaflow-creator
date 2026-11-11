@@ -6,6 +6,8 @@
 
 在 [GitHub Releases](https://github.com/Azheyc/novaflow-creator/releases/latest) 下载客户端。当前发行包支持 macOS Apple Silicon（ARM64）。应用尚未进行 Apple Developer ID 签名和公证。
 
+首次安装请查看 [macOS 安装与签名说明](docs/macInstallation.md)。2.0.3 起修复应用签名封装，使用临时签名；其他 Mac 仍可能需要在“隐私与安全性”中授权，正式免手动处理的分发需要 Developer ID 签名和 Apple 公证。
+
 ## 使用
 
 1. 安装并打开 NovaFlow Creator。
