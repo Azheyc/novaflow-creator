@@ -197,9 +197,15 @@ function getDurations(choice: NodeMediaModel) {
 }
 
 function getResolutions(choice: NodeMediaModel, duration?: number) {
-  // ACT: 当前视频分辨率使用 p 单位；出现其他单位时再统一换算。
+  // ACT: p 按像素行数排序，k 按千级像素排序，避免 4k 因数字较小排在 480p 前面而成为默认值。
   return [...new Set((choice.durationResolutionMap ?? []).filter((item) => item.duration.includes(duration!)).flatMap((item) => item.resolution))]
-    .sort((left, right) => (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity));
+    .sort((left, right) => resolutionRank(left) - resolutionRank(right));
+}
+
+function resolutionRank(value: string) {
+  const number = Number.parseFloat(value);
+  if (!Number.isFinite(number)) return Infinity;
+  return /k$/i.test(value) ? number * 1000 : number;
 }
 // ACT: 引用改变时只替换不适用的模式；普通媒体优先作为参考，避免自动变成首尾帧。
 watch([selectedModel, matchingModes, () => data.value.mode], ([choice, matches]) => {

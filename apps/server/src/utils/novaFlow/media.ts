@@ -20,6 +20,18 @@ function imageOptions(model: string) {
   return { imageSizes, imageRatios, dimensions };
 }
 
+function videoOptions(model: string) {
+  const id = model.toLowerCase();
+  if (!id.includes("seedance")) return {};
+  const durations = (max: number) => Array.from({ length: max - 3 }, (_, index) => index + 4);
+  const map = id.includes("seedance-2.5")
+    ? [{ duration: durations(30), resolution: ["480p", "720p"] }]
+    : id.includes("fast") || id.includes("mini")
+      ? [{ duration: durations(15), resolution: ["480p", "720p"] }]
+      : [{ duration: durations(15), resolution: ["480p", "720p", "1080p", "4k"] }];
+  return { audio: "optional", durationResolutionMap: map };
+}
+
 export function creatorMediaSources() {
   const session = currentSession();
   if (!session) return [];
@@ -31,13 +43,15 @@ export function creatorMediaSources() {
       id, label: `NovaFlow · ${models[0]!.group_name}`, version: "1.0.0", rules: [],
       models: models.map(model => {
         const options = model.kind === "image" ? imageOptions(model.model_id) : undefined;
+        const video = model.kind === "video" ? videoOptions(model.model_id) : {};
         return {
           id: model.model_id, label: model.label, type: model.kind,
           ...(options ? { imageSizes: options.imageSizes, imageRatios: options.imageRatios } : {}),
           mode: model.kind === "image" ? ["text", "singleImage", "multiReference"] : ["text", "startFrameOptional", "endFrameOptional", ["imageReference:64", "videoReference:64", "audioReference:64"]],
+          ...video,
           // 节点参数面板直接根据 rules 渲染；不再提供自定义像素尺寸输入。
-          rules: model.kind === "image" ? []
-            : [{ type: "inputNumber", field: "seconds", title: "时长（秒）", value: 5, props: { min: 1, max: 3600 } }],
+          rules: model.kind === "image" ? [{ type: "select", field: "n", title: "张数", value: 1, options: [1, 2, 3, 4].map(value => ({ label: `${value}张`, value })) }]
+            : [],
         };
       }),
     };
@@ -78,9 +92,7 @@ async function appendMedia(form, field, input, index) {
 function parameters(input) {
  const extra = { ...(input.other || {}) };
  // 旧节点可能保存过已移除的像素尺寸，不能继续隐式覆盖可见的分辨率/比例。
- delete extra.size;
- delete extra.width;
- delete extra.height;
+ for (const key of ["size", "width", "height", "seconds", "resolution", "aspect_ratio"]) delete extra[key];
  for (const key of ["model", "prompt", "Authorization", "apiKey", "headers", "group", "base_url"]) {
   if (key in extra) throw new Error("扩展参数不能覆盖 " + key);
  }
