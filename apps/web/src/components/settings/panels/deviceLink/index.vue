@@ -1,5 +1,13 @@
 <template>
   <div v-loading="loading" class="deviceLink">
+    <section class="settingSection" aria-labelledby="connectDeviceTitle">
+      <div class="sectionHeader">
+        <h3 id="connectDeviceTitle">连接其他设备</h3>
+        <el-button :disabled="busy || deviceHubEnabled" @click="connectionVisible = true">打开连接</el-button>
+      </div>
+      <p v-if="deviceHubEnabled" class="description">如需连接其他设备，请先关闭下方“允许其他设备连接”。</p>
+    </section>
+    <mobileConnect v-if="connectionVisible" v-model="connectionVisible" />
     <section v-if="isRemoteConnection" class="remoteConnection" aria-label="当前连接设备">
       <el-tag :type="mobileConnection.online === true ? mobileConnectionVersionWarning ? 'warning' : 'success' : mobileConnection.online === false ? 'danger' : 'info'">{{ mobileConnectionLabel }}</el-tag>
       <h3>{{ mobileConnection.name || 'NovaFlow' }}</h3>
@@ -124,7 +132,7 @@
 <script setup lang="ts">
 import axios from "axios";
 import { msg, translate, type MessageDescriptor } from "@toonflow/i18n/vue";
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { QRCode } from "tdesign-vue-next";
 import { IconFolderPlus, IconQrcode, IconRefresh } from "@tabler/icons-vue";
@@ -133,6 +141,9 @@ import workspacePicker from "@/pages/home/workspacePicker.vue";
 import { writeClipboardText } from "@/lib/clipboard";
 import { changeDeviceConnection, deviceHubEnabled, getDeviceVersionWarning, mobileConnection, mobileConnectionLabel, mobileConnectionVersionWarning } from "@/lib/mobile";
 import { isRemoteConnection } from "@/lib/platform";
+
+const mobileConnect = defineAsyncComponent(() => import("@/components/mobileConnect.vue"));
+const connectionVisible = ref(false);
 
 type LinkStatus = { enabled: boolean; hubEnabled?: boolean; initialized: boolean; pairingAvailable: boolean; port: number; addresses: string[]; publicUrl: string; directories: string[]; appVersion?: string; devices: { id: string; name: string; online: boolean; lastSeen?: number; appVersion?: string }[] };
 type Pairing = { qrCode: string; manualCode: string; url: string };

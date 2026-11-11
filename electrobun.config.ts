@@ -11,7 +11,7 @@ export default {
   app: {
     name: "NovaFlow Creator",
     identifier: "vip.ycnovaflow.creator",
-    version: process.env.appVersion ?? "2.0.6",
+    version: process.env.appVersion ?? "2.0.7",
     urlSchemes: ["toonflow"],
   },
   build: {
@@ -66,7 +66,7 @@ export default {
     mac: {
       icons: "packages/assets/logo.iconset",
       createDmg: false,
-      entitlements: { "com.apple.security.device.audio-input": true },
+      entitlements: { "com.apple.security.device.audio-input": true, "com.apple.security.device.camera": true },
       // ACT: CI 同时开启签名与公证；本地未配置凭据时仍可构建未签名包。
       codesign: process.env.macCodesign === "1",
       notarize: process.env.macCodesign === "1",

@@ -21,6 +21,7 @@ if (process.env.ELECTROBUN_OS === "macos") {
   for (const [key, value] of [
     ["CFBundleDevelopmentRegion", "<string>zh-Hans</string>"],
     ["CFBundleLocalizations", "<array><string>zh-Hans</string></array>"],
+    ["NSCameraUsageDescription", "<string>用于在设备互联中扫描配对二维码，仅在你开启摄像头时使用。</string>"],
     ["NSMicrophoneUsageDescription", "<string>用于语音输入和显示麦克风音量。</string>"],
     ["NSSpeechRecognitionUsageDescription", "<string>用于将语音转换为输入文字。</string>"],
   ]) {

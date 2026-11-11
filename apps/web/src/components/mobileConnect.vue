@@ -96,7 +96,7 @@ import { isDesktop } from "@/lib/platform";
 type Candidate = { name: string; url: string; qrCode: string; appVersion?: string };
 
 const visible = defineModel<boolean>({ default: false });
-const view = ref<"scan" | "manual" | "confirm" | "current">("scan");
+const view = ref<"scan" | "manual" | "confirm" | "current">("manual");
 const connectionModes = [
   { label: "扫码连接", value: "scan", icon: IconQrcode },
   { label: "手动输入", value: "manual", icon: IconKeyboard },
@@ -229,12 +229,12 @@ async function startCamera() {
 }
 
 function scanAgain() {
+  stopCamera();
   dialogRun++;
   loading.value = false;
   candidate.value = undefined;
   view.value = "scan";
   error.value = "";
-  void startCamera();
 }
 
 function showManual() {
@@ -333,15 +333,14 @@ watch(visible, async open => {
   const run = ++dialogRun;
   if (!open) return;
   candidate.value = undefined;
-  view.value = mobileConnection.value.mode === "remote" ? "current" : "scan";
+  view.value = mobileConnection.value.mode === "remote" ? "current" : "manual";
   error.value = "";
   restarting.value = submitting.value = false;
   loading.value = true;
   try {
     const connection = await refreshMobileConnection();
     if (!visible.value || run !== dialogRun) return;
-    view.value = connection.mode === "remote" ? "current" : "scan";
-    if (connection.mode === "local") void startCamera();
+    view.value = connection.mode === "remote" ? "current" : "manual";
   } catch (cause) {
     if (visible.value && run === dialogRun) error.value = errorMessage(cause);
   } finally {

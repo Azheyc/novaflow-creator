@@ -26,13 +26,6 @@
       </nav>
       <div class="sidebarFooter">
         <homeAdvertisementCarousel class="sidebarPromotion" :advertisements="advertisements.sidebar" @activate="activateAdvertisement" />
-        <button v-if="!publicWeb" class="sidebarItem deviceButton" :class="{ connected: deviceHubEnabled || mobileConnection.online === true }" type="button" :aria-label="mobileConnectionLabel" :title="mobileConnectionLabel" @click="mobileConnectVisible = true">
-          <span class="sidebarIcon">
-            <component :is="deviceHubEnabled || mobileConnection.mode === 'remote' ? IconDeviceDesktop : IconQrcode" :size="18" aria-hidden="true" />
-            <span v-if="deviceHubEnabled || mobileConnection.online === true" class="connectionDot" />
-          </span>
-          <span class="sidebarText">{{ mobileConnectionLabel }}</span>
-        </button>
         <button class="sidebarItem" type="button" :aria-label="hasDesktopUpdate ? '设置，有新版本可用' : '设置'" :title="hasDesktopUpdate ? '设置，有新版本可用' : '设置'" @click="settingsVisible = true">
           <span class="sidebarIcon">
             <icon-settings :size="18" aria-hidden="true" />
@@ -112,7 +105,6 @@
     </el-scrollbar>
     <assetLibraryDialog v-if="currentUser?.role !== 'user'" v-model="assetsVisible" />
     <settings ref="settingsDialog" v-model="settingsVisible" />
-    <mobileConnect v-if="!publicWeb" v-model="mobileConnectVisible" />
     <workspacePicker ref="relocationPicker" hideTrigger />
   </div>
 </template>
@@ -127,7 +119,7 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox, type InputInstance, type ScrollbarInstance } from "element-plus";
 import { getReadableFileMimeType, readableFileAccept } from "@toonflow/server/documentFormats";
 import {
-  IconQrcode, IconDeviceDesktop, IconHome, IconCompass,
+  IconHome, IconCompass,
   IconArrowUp, IconPlus, IconLoader2,
   IconFolder, IconEdit, IconFileZip,
   IconTrash, IconPaperclip,
@@ -141,7 +133,6 @@ import logoUrl from "@toonflow/assets/logo.svg";
 import { useWorkspaceStore, type Project } from "@/stores/workspace";
 import { currentUser, publicWeb } from "@/stores/multiTenant";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
-import { deviceHubEnabled, mobileConnection, mobileConnectionLabel } from "@/lib/mobile";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import saveFile from "@/lib/saveFile";
 import http from "@/lib/http";
@@ -158,7 +149,6 @@ const settingsVisible = ref(false);
 const settingsDialog = ref<InstanceType<typeof settings>>();
 const advertisements = ref<HomeAdvertisements>({ banner: null, banners: [], bannerMode: "carousel", bannerInterval: 5, sidebar: [] });
 const assetsVisible = ref(false);
-const mobileConnectVisible = ref(false);
 const sidebarCollapsed = ref(false);
 const pageScroll = ref<ScrollbarInstance>();
 const backgroundScrollTop = ref(0);
@@ -169,7 +159,6 @@ const homeSections = [
   { id: "projects", label: "项目", icon: IconFolder },
   ...(!novaFlowEnabled.value ? [{ id: "explore", label: "探索", icon: IconCompass }] : []),
 ];
-const mobileConnect = defineAsyncComponent(() => import("@/components/mobileConnect.vue"));
 const router = useRouter();
 const pageLifetime = new AbortController();
 const creating = ref(false);
