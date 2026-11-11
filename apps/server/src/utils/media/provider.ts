@@ -355,6 +355,7 @@ async function readProvider(path: string, fileName: string) {
 }
 
 export async function getMediaProvider(id: string) {
+  if (novaFlowEnabled() && !creatorMediaSources().some(item => item.id === id)) invalid("请重新选择当前 NovaFlow 账号可用的模型", 403);
   if (id.startsWith("novaFlow")) {
     const entry = creatorMediaSources().find(item => item.id === id);
     if (!entry) invalid("NovaFlow 账号或模型已变更，请刷新模型", 401);
@@ -383,6 +384,7 @@ export async function getMediaProviderSource(fileName: string) {
 
 export async function listMediaProviders() {
  const managed = creatorMediaSources().map(item => metadata(`${item.id}.ts`, item.source));
+  if (novaFlowEnabled()) return managed;
   const path = await directory();
   if (!path) return managed;
   const files = await readdir(path, { withFileTypes: true });

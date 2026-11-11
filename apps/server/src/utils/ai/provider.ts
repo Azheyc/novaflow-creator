@@ -68,6 +68,7 @@ export function getAccountProvider() {
 }
 
 export function getConfiguredProviders() {
+  if (novaFlowEnabled()) return creatorTextProviders();
   const providers = conf.get("settings", {}).customProviders;
   const account = getAccountProvider();
   return [...creatorTextProviders(), ...(account ? [account] : []), ...(Array.isArray(providers) ? providers.filter(item => typeof item?.id !== "string" || item.id.toLowerCase() !== "toonflow" && !item.id.startsWith("novaFlow")) : [])];
