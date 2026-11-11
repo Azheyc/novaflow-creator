@@ -10,6 +10,7 @@ import { errorFromCause } from "@/lib/responseFormat";
 import desktopRequest from "@/lib/desktop";
 import { getRuntimePlatform } from "@/lib/platform";
 import initializePlugins from "@/utils/plugins/initialize";
+import initializeSkills from "@/utils/plugins/initializeSkills";
 import { languageRequest, setLocaleFallback, translateError, translateMessage } from "@/lib/i18n";
 import { detectLocale, normalizeLocale } from "@toonflow/i18n";
 
@@ -84,8 +85,8 @@ export async function createApp({
     }
     await initializePlugins(resolve(dataDirectory, "providers"), sourceDirectory, autoInstallProviders, providerRevision);
   }
-  // ACT: 技能和团队只补首次安装，保留用户修改。
-  if (dataDirectory && skillsRoot) await initializePlugins(resolve(dataDirectory, "skills"), skillsRoot);
+  // ACT: 创作技能按内容版本同步，旧版本移至技能目录外备份；团队仍只补首次安装。
+  if (dataDirectory && skillsRoot) await initializeSkills(dataDirectory, skillsRoot);
   if (dataDirectory && agentsRoot) await initializePlugins(resolve(dataDirectory, "agents"), agentsRoot);
   const app = express();
   app.locals.appVersion = appVersion;
