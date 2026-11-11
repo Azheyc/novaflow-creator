@@ -165,6 +165,16 @@ type ResolvedAiModel = { providerId: string; providerLabel: string; modelId: str
 const availableModels = ref<ResolvedAiModel[]>([]);
 export const modelChoices = computed(() => availableModels.value.map(model => ({ ...model, value: getNodeModelKey(model) })));
 
+export function getLastAgentModel() {
+  const stores = settings.value.stores as Record<string, unknown> | undefined;
+  return typeof stores?.["novaflow.lastAgentModel"] === "string" ? stores["novaflow.lastAgentModel"] : "";
+}
+
+export function rememberAgentModel(value: string) {
+  if (!modelChoices.value.some(model => model.value === value) || getLastAgentModel() === value) return;
+  settingsStorage.setItem("novaflow.lastAgentModel", JSON.stringify(value));
+}
+
 function applyModelReasoning(models: ResolvedAiModel[]) {
   availableModels.value = models;
 }

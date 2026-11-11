@@ -11,7 +11,7 @@
                 <h3>从一个想法开始</h3>
               </div>
             </div>
-            <p class="welcomeDescription">聊聊你的故事、画面或镜头，让我们一起把想法落到画布上。</p>
+            <p class="welcomeDescription">从已有的故事、对白或素材继续，选择这次想完成的内容。</p>
             <div class="welcomeSuggestions">
               <el-button v-for="item in welcomeSuggestions" :key="item.label" class="welcomeSuggestion" text bg :disabled="locked" :aria-label="`填入提示：${item.label}`" @click="emit('fillPrompt', item.prompt)">
                 <component :is="item.icon" :size="19" aria-hidden="true" />
@@ -209,9 +209,12 @@ watch([() => props.active, messageList], async ([active, element]) => {
   messageListInitialized = true;
 }, { immediate: true, flush: "post" });
 const welcomeSuggestions = [
-  { label: "搭建创作画布", description: "把创意串成清晰的节点流程", icon: IconVector, prompt: "帮我搭建一个创作画布，先和我确认需要的节点与流程。" },
-  { label: "梳理故事分镜", description: "拆解故事，安排画面与镜头", icon: IconMovie, prompt: "帮我把故事整理成分镜，先和我确认故事内容、时长和画面风格。" },
-  { label: "生成图片素材", description: "为角色和场景寻找视觉方向", icon: IconPhoto, prompt: "帮我生成图片素材，先和我确认画面内容、风格和使用的模型。" },
+  { label: "故事创作", description: "把点子写成故事，或继续修改已有稿", icon: IconVector, prompt: "请使用故事创作技能（laotang-storycraft-zh），根据我提供的材料创作或修改故事。沿用已确认的设定，只处理这次指定的范围，不自动进入分镜或媒体生成。我的想法或修改要求：" },
+  { label: "电影级分镜", description: "把已有故事或对白整理成中文分镜提示词", icon: IconMovie, prompt: "请使用电影级分镜技能（laotang-cinematic-storyboard-s9），把我提供的故事、剧本或对白整理成中文视频分镜提示词。默认先给简易预览；如果我明确要求完整提示词则直接完整交付。不重写已定剧情，不自动生成视频。故事或对白：" },
+  { label: "提取故事资产", description: "整理人物、道具、场景与跨场状态", icon: IconVector, prompt: "请使用故事资产提取技能（laotang-asset-extractor），从我指定的故事范围提取人物、道具、场景和场次关联，保留证据、稳定编号与状态。先完成资产整理，不自动生图。故事材料或范围：" },
+  { label: "角色资产板", description: "根据人物设定制作角色参考板提示词", icon: IconPhoto, prompt: "请使用角色资产板技能（laotang-character-board），将我提供的人物设定或已有角色资产卡整理成完整中文角色板提示词。沿用已确认的模式、外观和版本；缺少设计依据时指出必要缺项，不自动生图。人物设定或参考：" },
+  { label: "场景补充视角", description: "让已有场景保持布局，增加第二、第三个角度", icon: IconPhoto, prompt: "请使用全能场景技能（laotang-scene-reference-zh），基于我指定的已采用场景图补充一个视角。优先读取画布中的实图，保持同一空间布局、物件与世界光源，根据目标机位重算锚点，不要求重做首图。没有实图时说明缺项，不把文字预案当成正式据图提示词。场景图和目标视角：" },
+  { label: "落实到画布", description: "将已有提示词与素材整理为可执行节点", icon: IconVector, prompt: "请通过创作总控（workflow）和画布执行（canvas），把我指定的现有提示词与素材落实到当前画布。保留专业稿，复用已有素材，核实真实参考顺序与模型能力；先准备节点和可审阅方案，付费生成须在明确授权范围内执行。本次内容与范围：" },
 ];
 </script>
 

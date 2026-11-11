@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { getLastAgentModel, modelChoices } from "@/stores/settings";
 import { computed, onBeforeUnmount, ref, watch, type ComponentPublicInstance } from "vue";
 import axios from "axios";
 import { translate } from "@toonflow/i18n/vue";
@@ -188,7 +189,9 @@ async function newConversation(source?: { file?: string; message: AgentMessage }
   const directory = workspaceStore.project?.directory;
   if (!directory) return ElMessage.warning("请先打开项目");
   if (source && (!source.file || !(source.message.entryId || source.message.replyTo))) return ElMessage.warning("消息尚未保存，请稍后创建分支");
-  const initialModel = conversationRefs.get(conversationKey.value)?.getSelectedModel();
+  const previousModel = conversationRefs.get(conversationKey.value)?.getSelectedModel();
+  const rememberedModel = getLastAgentModel();
+  const initialModel = source ? previousModel : modelChoices.value.find(model => model.value === rememberedModel)?.value ?? previousModel;
   const currentRequest = ++requestId;
   const errorMessage = source ? "创建对话分支失败" : "新建对话失败";
   branchingId.value = source?.message.id;
