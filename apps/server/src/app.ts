@@ -146,5 +146,7 @@ export async function createApp({
 
   const { initializeMobileLinkRuntime } = await import("@/utils/mobileLink");
   initializeMobileLinkRuntime(app);
+  const { startContentMonitoring } = await import("@/utils/contentInsights/monitor");
+  startContentMonitoring();
   return app;
 }

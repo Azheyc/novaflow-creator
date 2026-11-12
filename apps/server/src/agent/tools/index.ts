@@ -26,6 +26,7 @@ import { createPluginMarketTools } from "./pluginMarket";
 import { currentIdentity } from "@/utils/multiTenant/context";
 import { modelGateway, requireDirectModelAccess } from "@/utils/multiTenant/gateway";
 import * as mediaTasks from "@/utils/media/tasks";
+import { createContentTools } from "./contentInsights";
 
 export function createAgentToolContext(cwd: string, config: Record<string, unknown> = {}, canvas?: CanvasContext, question?: QuestionContext, workspaceAvailable = true): ToolContext {
   const actor = currentIdentity();
@@ -169,7 +170,7 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
 }
 
 export async function createAgentTools(cwd: string, canvas?: CanvasContext, question?: QuestionContext, includeMcp = true): Promise<ToolDefinition[]> {
-  const tools = createPluginMarketTools(question);
+  const tools = [...createPluginMarketTools(question), ...createContentTools()];
   const names = new Set(tools.map(tool => tool.name));
   const context = createAgentToolContext(cwd, {}, canvas, question);
   function appendTools(definitions: ToolDefinition[], prompt: string, label: string) {

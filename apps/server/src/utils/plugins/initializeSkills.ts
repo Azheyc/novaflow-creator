@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 // Only these shipped skill directories participate; unrelated user skills remain untouched.
-const skillFolders = ["workflow", "canvas", "storycraft", "assetExtractor", "characterBoard", "sceneReference", "cinematicStoryboard"];
+const skillFolders = ["workflow", "canvas", "storycraft", "assetExtractor", "characterBoard", "sceneReference", "cinematicStoryboard", "contentInsights"];
 const retiredFolders = ["v118workflow", "laotang-storycraft-zh", "laotang-asset-extractor", "laotang-character-board", "laotang-scene-reference-zh", "laotang-cinematic-storyboard-s9"];
 
 export default async function initializeSkills(dataDirectory: string, sourceDirectory: string) {

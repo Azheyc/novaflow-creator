@@ -3,6 +3,7 @@ import { request, type ClientRequest, type IncomingMessage } from "node:http";
 import { request as requestSecure } from "node:https";
 import { BlockList, isIP } from "node:net";
 import { t, translateMessage } from "@/lib/i18n";
+import { open } from "@toonflow/file";
 
 const privateAddresses = new BlockList();
 for (const [address, prefix] of [
@@ -36,7 +37,7 @@ export function remoteAddress(value: string, httpsOnly = false) {
   return url;
 }
 
-function requestFile(url: URL, signal: AbortSignal, accept: string) {
+function requestFile(url: URL, signal: AbortSignal, accept: string, media = false, range?: string) {
   return new Promise<IncomingMessage>((resolve, reject) => {
     let outgoing: ClientRequest | undefined;
     let incoming: IncomingMessage | undefined;
@@ -64,8 +65,9 @@ function requestFile(url: URL, signal: AbortSignal, accept: string) {
       const connection = new URL(url);
       connection.hostname = address.family === 6 ? `[${address.address}]` : address.address;
       // ACT: 固定已校验 IP，保留原 Host 和 TLS 证书域名；Bun 的 request signal 不保证及时结束，改为显式销毁并 reject。
+      const mediaHeaders = media ? { "User-Agent": "Mozilla/5.0", ...(/(^|\.)bilivideo\.(com|cn)$/.test(hostname) ? { Referer: "https://www.bilibili.com/" } : {}) } : {};
       outgoing = (url.protocol === "https:" ? requestSecure : request)(connection, {
-        method: "GET", agent: false, servername: hostname, headers: { Host: url.host, Accept: accept },
+        method: "GET", agent: false, servername: hostname, headers: { Host: url.host, Accept: accept, ...mediaHeaders, ...(range ? { Range: range } : {}) },
       }, response => {
         incoming = response;
         response.once("close", cleanup);
@@ -77,6 +79,22 @@ function requestFile(url: URL, signal: AbortSignal, accept: string) {
       else outgoing.end();
     })().catch(error => { cleanup(); reject(error); });
   });
+}
+
+export async function streamPublicMedia(value: string, signal: AbortSignal, range?: string) {
+  if (range && !/^bytes=\d*-\d*$/.test(range)) throw new Error("媒体读取范围无效");
+  let url = remoteAddress(value);
+  for (let redirects = 0; redirects <= 5; redirects++) {
+    const response = await requestFile(url, signal, "video/*,image/*,application/octet-stream", true, range);
+    if ([301, 302, 303, 307, 308].includes(response.statusCode ?? 0)) {
+      const location = response.headers.location; response.destroy();
+      if (!location || redirects === 5) throw new Error("素材链接已失效");
+      url = remoteAddress(new URL(location, url).href); continue;
+    }
+    if (![200, 206].includes(response.statusCode ?? 0)) { response.destroy(); throw new Error("素材预览不可用，请重新解析"); }
+    return response;
+  }
+  throw new Error("素材链接无效");
 }
 
 export async function downloadPublicFile(value: string, options: { signal: AbortSignal; maxBytes: number; label: string; httpsOnly?: boolean; accept?: string }) {
@@ -111,4 +129,37 @@ export async function downloadPublicFile(value: string, options: { signal: Abort
     return Buffer.concat(chunks, size);
   }
   return invalid("下载重定向无效", 502);
+}
+
+// Video imports stream to a private task file instead of buffering the movie in memory.
+export async function downloadPublicFileTo(value: string, path: string, signal: AbortSignal, progress: (bytes: number, total: number) => void) {
+  let url = remoteAddress(value);
+  for (let redirects = 0; redirects <= 5; redirects++) {
+    const response = await requestFile(url, signal, "video/*,image/*,application/octet-stream", true);
+    if ([301, 302, 303, 307, 308].includes(response.statusCode ?? 0)) {
+      const location = response.headers.location;
+      response.destroy();
+      if (!location || redirects === 5) throw new Error("下载地址已失效，请重新解析");
+      url = remoteAddress(new URL(location, url).href);
+      continue;
+    }
+    if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) { response.destroy(); throw new Error("素材暂时无法下载，请重新解析或上传本地文件"); }
+    const total = Number(response.headers["content-length"]) || 0;
+    const file = await open(path, "w", 0o600);
+    let received = 0;
+    try {
+      for await (const chunk of response) {
+        signal.throwIfAborted();
+        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        let written = 0;
+        while (written < bytes.length) written += (await file.write(bytes, written)).bytesWritten;
+        received += bytes.length;
+        progress(received, total);
+      }
+      if (!received || total && received !== total) throw new Error("素材下载不完整，请重试");
+      await file.sync();
+    } finally { response.destroy(); await file.close(); }
+    return received;
+  }
+  throw new Error("下载地址无效");
 }

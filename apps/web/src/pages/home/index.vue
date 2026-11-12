@@ -19,6 +19,9 @@
           <span class="sidebarText">{{ translate(section.label) }}</span>
         </button>
         <hr v-if="currentUser?.role !== 'user'" class="sidebarDivider" />
+        <button v-if="novaFlowEnabled" class="sidebarItem" type="button" aria-label="内容洞察" title="内容洞察" @click="router.push('/content')">
+          <icon-compass :size="18" aria-hidden="true" /><span class="sidebarText">内容洞察</span>
+        </button>
         <button v-if="currentUser?.role !== 'user'" class="sidebarItem" :class="{ active: assetsVisible }" type="button" aria-label="素材库" title="素材库" aria-haspopup="dialog" :aria-expanded="assetsVisible" @click="assetsVisible = true">
           <icon-library-photo :size="18" aria-hidden="true" />
           <span class="sidebarText">素材库</span>

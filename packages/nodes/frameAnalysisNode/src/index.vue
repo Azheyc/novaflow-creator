@@ -93,7 +93,7 @@ import { computed, inject, nextTick, onScopeDispose, reactive, ref, shallowRef, 
 import { IconMovie, IconPhoto, IconUpload, IconWaveSine, IconScissors, IconAdjustmentsHorizontal, IconSparkles, IconTransfer, IconMaximize, IconFileText, IconArrowUp, IconPlayerStop } from "@tabler/icons-vue";
 import { ElMessage, ElSelect, ElOption, ElOptionGroup, ElButton, ElCard, ElCheckbox, ElPopover, ElInputNumber, ElSwitch, ElProgress } from "element-plus";
 import {
-  findNodeModel, getNodeModelKey, getTargetValues, isNodeOutput, nodeSkeleton, useNode, useNodeInputs, useNodeModelSelection, uploadNodeFile,
+  findNodeModel, getNodeModelKey, getTargetValues, isNodeOutput, nodeSkeleton, nodeTools, z, useNode, useNodeInputs, useNodeModelSelection, uploadNodeFile,
   type NodeHandle, type NodeMediaValue, type WorkspaceFiles, type NodeAiModel, type BrowserFfmpegFactory,
 } from "@toonflow/nodes-scaffold/runtime";
 import { analyzeVideo, type AnalysisResult } from "./videoAnalysis";
@@ -190,6 +190,29 @@ let controller: AbortController | undefined;
 let job: Promise<void> | undefined;
 let uploadJob: Promise<void> | undefined;
 let disposed = false;
+
+nodeTools.register({
+  name: "startAnalysis", description: "开始本地逐帧拉片；立即返回，使用 getAnalysisStatus 查询结果。已有结果默认复用。AI 辅助需提供实际模型选择身份。",
+  parameters: z.object({ aiModel: z.string().optional(), focus: z.string().max(2000).optional(), repeat: z.boolean().default(false) }),
+  async execute(args) {
+    if (busy.value) return { status: "processing" };
+    if (!source.value) throw new Error("请先连接视频素材");
+    if (lastResultMatches.value && !args.repeat) return { status: "succeeded", result: lastResult.value };
+    if (args.aiModel) {
+      await loadModels();
+      if (!models.value.some(model => getNodeModelKey(model) === args.aiModel)) throw new Error("请选择当前可用的图片理解模型");
+      settings.aiModel = args.aiModel; settings.aiEnabled = true;
+    } else settings.aiEnabled = false;
+    settings.frames = true; settings.clips = true;
+    if (args.focus !== undefined) settings.focus = args.focus;
+    void run();
+    return { status: "processing", message: "已开始拉片，完成前不能宣称已读取结果" };
+  },
+});
+nodeTools.register({
+  name: "getAnalysisStatus", description: "查询拉片进度、错误和已保存的镜头清单；不提交新任务", parameters: z.object({}),
+  async execute() { return { status: processing.value ? "processing" : errorMessage.value ? "failed" : lastResultMatches.value ? "succeeded" : "idle", progress: progress.value, error: errorMessage.value, result: lastResultMatches.value ? lastResult.value : undefined }; },
+});
 
 function persist() {
   nodeData.frameAnalysis = { ...settings, source: uploadedSource.value, lastResult: lastResult.value, resultSource: resultSource.value };

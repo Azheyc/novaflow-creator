@@ -23,6 +23,7 @@ const router = createRouter({
       path: "/canvas",
       redirect: "/workspace",
     },
+    { path: "/content", component: () => import("@/pages/contentInsights/index.vue") },
     {
       path: "/workspace",
       beforeEnter: () => publicWeb.value && !useWorkspaceStore().project ? { path: "/home", replace: true } : true,

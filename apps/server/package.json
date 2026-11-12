@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./contentInsights": "./src/utils/contentInsights/types.ts",
     "./app": "./src/app.ts",
     "./multiTenant": "./src/utils/multiTenant/index.ts",
     "./remoteConnection": "./src/remoteConnection.ts",

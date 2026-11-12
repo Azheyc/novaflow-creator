@@ -18,18 +18,22 @@ let syncing: Promise<void> | undefined;
 let pending: { server: Server; timer: ReturnType<typeof setTimeout>; state: string; verifier: string; redirect: string; epoch: number; busy: boolean } | undefined;
 let authorizationError = "";
 let syncError = "";
+const sessionListeners = new Set<() => void>();
+export function onCreatorSessionChange(listener: () => void) { sessionListeners.add(listener); return () => sessionListeners.delete(listener); }
+function notifySessionChange() { for (const listener of sessionListeners) listener(); }
 
 export function currentSession() {
   if (!novaFlowEnabled()) return undefined;
   const result = sessionSchema.safeParse(conf.get("novaFlowCreator"));
   return result.success ? result.data : undefined;
 }
-function saveSession(value: CreatorSession) { conf.set("novaFlowCreator", value); }
+function saveSession(value: CreatorSession) { conf.set("novaFlowCreator", value); notifySessionChange(); }
 export function invalidateCredential(rejected: string) {
   const session = currentSession();
   // An old in-flight response must not discard a newer login or rotated token.
   if (!session || rejected !== session.access && rejected !== session.refresh) return;
   conf.delete("novaFlowCreator");
+  notifySessionChange();
   syncError = "NovaFlow 登录已失效，请重新登录";
 }
 export async function novaFlowRequest(path: string, init: RequestInit = {}) {
@@ -149,6 +153,7 @@ export async function logout() {
   cancelAuthorization();
   const session = currentSession();
   conf.delete("novaFlowCreator");
+  notifySessionChange();
   authorizationError = ""; syncError = "";
   if (session) await revoke(session).catch(() => { throw new Error("已退出本机账号，远端设备撤销失败，请在 NovaFlow 账户中撤销此设备"); });
 }
