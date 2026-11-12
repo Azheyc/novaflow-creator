@@ -68,7 +68,7 @@
       </div>
       <canvasEmpty
         v-if="active && !settingsVisible && project?.directory && canvasReady && !flow.getNodes.value.length"
-        :availableNodes="availableNodes"
+        :availableNodes="addableNodes"
         @create="createEmptyNode" />
       <canvasViewportHint v-if="active && !settingsVisible && project?.directory && canvasReady" :key="canvasId" />
       <canvasMenu ref="canvasMenuRef" v-model:canvasId="canvasId" :directory="project?.directory" :initialCanvasId="initialCanvasId" :activateCanvas="activateCanvas" :flushSave="flushCanvases ?? flushCanvasSave">
@@ -87,7 +87,7 @@
       <nodeMenu
         :key="JSON.stringify(['nodeMenu', project?.directory, canvasId])"
         ref="nodeMenuRef"
-        :remoteNodes="availableNodes"
+        :remoteNodes="addableNodes"
         :disabled="!active || settingsVisible || !project?.directory || !canvasReady"
         :pasteNode="pasteClipboardNode"
         :uploadFiles="canvasId && project?.directory ? selectFiles : undefined"
@@ -224,6 +224,7 @@ const nodeReloads = new Set<string>();
 const handledPluginEvents = new WeakSet<Event>();
 const nodeErrors = ref<Record<string, string>>({});
 const availableNodes = computed(() => nodeOptions.value.filter(node => nodeTypes.value[node.type] && !nodeErrors.value[node.type]));
+const addableNodes = computed(() => availableNodes.value.filter(node => node.type !== "remote-audioGenerationNode"));
 const nodeListLoading = ref(true);
 const remoteNodeTypes = computed(() => [
   ...new Set((flowData.value as { type?: string }[]).map((item) => item.type).filter((type): type is string => !!type?.startsWith("remote-"))),

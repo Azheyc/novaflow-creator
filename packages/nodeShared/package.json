@@ -19,6 +19,7 @@
     "./useNodeReferences": "./src/useNodeReferences.ts",
     "./useNodeGeneration": "./src/useNodeGeneration.ts",
     "./useModelForm": "./src/useModelForm.ts",
+    "./useMediaDefaults": "./src/useMediaDefaults.ts",
     "./useAudioTranscription": "./src/useAudioTranscription.ts",
     "./groupNodeModels": "./src/groupNodeModels.ts"
   },

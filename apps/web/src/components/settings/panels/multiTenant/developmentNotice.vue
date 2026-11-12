@@ -15,22 +15,14 @@
         <p class="scanTip">微信扫码洽谈商务合作</p>
       </div>
       <div class="businessQr">
-        <q-r-code
-          value="https://work.weixin.qq.com/u/vc0f54596c5837d05a?v=5.0.8.70675"
-          :size="168"
-          type="svg"
-          color="#000000"
-          bgColor="#ffffff"
-          borderless
-          role="img"
-          aria-label="NovaFlow 商务合作二维码" />
+        <img :src="businessQrUrl" width="192" height="192" alt="NovaFlow 商务合作微信二维码" />
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { QRCode } from "tdesign-vue-next";
+import businessQrUrl from "@toonflow/assets/businessQr.png";
 </script>
 
 <style lang="scss" scoped>
@@ -109,9 +101,16 @@ import { QRCode } from "tdesign-vue-next";
 
     .businessQr {
       flex-shrink: 0;
-      padding: 12px;
       border-radius: var(--el-border-radius-base);
       background: #ffffff;
+
+      img {
+        display: block;
+        width: 192px;
+        height: 192px;
+        object-fit: contain;
+        border-radius: inherit;
+      }
     }
 
     @media (max-width: 700px) {

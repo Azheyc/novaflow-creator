@@ -175,6 +175,25 @@ export function rememberAgentModel(value: string) {
   settingsStorage.setItem("novaflow.lastAgentModel", JSON.stringify(value));
 }
 
+export function getAgentReasoning(model: string) {
+  const stores = settings.value.stores as Record<string, unknown> | undefined;
+  const preferences = stores?.["novaflow.agentReasoning"];
+  if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) return "";
+  const value = (preferences as Record<string, unknown>)[model];
+  const choice = modelChoices.value.find(item => item.value === model);
+  return typeof value === "string" && choice?.reasoningLevels.includes(value as ThinkingLevel) ? value : "";
+}
+
+export function rememberAgentReasoning(model: string, effort: string) {
+  const choice = modelChoices.value.find(item => item.value === model);
+  if (!choice || effort && !choice.reasoningLevels.includes(effort as ThinkingLevel)) return;
+  const stores = settings.value.stores as Record<string, unknown> | undefined;
+  const stored = stores?.["novaflow.agentReasoning"];
+  const preferences = stored && typeof stored === "object" && !Array.isArray(stored) ? stored as Record<string, unknown> : {};
+  if (preferences[model] === effort) return;
+  settingsStorage.setItem("novaflow.agentReasoning", JSON.stringify({ ...preferences, [model]: effort }));
+}
+
 function applyModelReasoning(models: ResolvedAiModel[]) {
   availableModels.value = models;
 }

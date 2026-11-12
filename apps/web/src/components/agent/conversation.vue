@@ -73,7 +73,7 @@ import { onAgentStopped, stopAgent } from "@/lib/agentControl";
 import { writeClipboardText } from "@/lib/clipboard";
 import { showNotification } from "@/lib/notification";
 import anonymousData from "@/lib/anonymousData";
-import { modelChoices, refreshModelChoices, rememberAgentModel } from "@/stores/settings";
+import { modelChoices, refreshModelChoices, rememberAgentModel, rememberAgentReasoning } from "@/stores/settings";
 import { useWorkspaceStore } from "@/stores/workspace";
 import type { AgentAttachment, AgentConversation, AgentMessage } from "./types";
 import type { AgentEvent, AgentQueue, AgentQueuedMessage } from "@toonflow/server/agent/types";
@@ -234,6 +234,7 @@ async function sendQueuedMessage(streamingBehavior: "steer" | "followUp") {
     const currentModel = selectedModelChoice.value;
     if (!currentModel) throw new Error("请先选择模型");
     rememberAgentModel(selectedModel.value);
+    rememberAgentReasoning(selectedModel.value, reasoningEffort.value);
     const response = await fetch("/api/agent", {
       method: "POST",
       headers: { "Accept-Language": locale.value, "Content-Type": "application/json", "x-toonflow-workspace": "1" },
@@ -531,6 +532,7 @@ async function sendMessage(source?: AgentMessage) {
     const currentModel = selectedModelChoice.value;
     if (!currentModel) throw new Error("请先选择模型");
     rememberAgentModel(selectedModel.value);
+    rememberAgentReasoning(selectedModel.value, reasoningEffort.value);
     if (!isSuperseded()) remoteRunning.value = true;
     pendingRunIds.add(requestRunId);
     const response = await fetch("/api/agent", {

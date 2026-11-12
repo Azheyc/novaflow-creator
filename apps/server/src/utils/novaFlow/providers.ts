@@ -13,7 +13,7 @@ export function creatorTextProviders() {
     if (!protocol) continue;
     const id = managedProviderId(session.identity.user_id, session.identity.identity_scope, model.group_id, protocol);
     const provider = result.get(id) ?? { id, label: `NovaFlow · ${model.group_name}`, apiUrl: novaFlowOrigin, apiKey: session.access, protocol, headers: { Authorization: `Bearer ${session.access}`, "X-NovaFlow-Group": encodeURIComponent(model.group_id) }, models: [] };
-    provider.models.push({ id: model.model_id, label: model.label });
+    provider.models.push({ id: model.model_id, label: model.model_id });
     result.set(id, provider);
   }
   return [...result.values()];

@@ -45,7 +45,7 @@ export function creatorMediaSources() {
         const options = model.kind === "image" ? imageOptions(model.model_id) : undefined;
         const video = model.kind === "video" ? videoOptions(model.model_id) : {};
         return {
-          id: model.model_id, label: model.label, type: model.kind,
+          id: model.model_id, label: model.model_id, type: model.kind,
           ...(options ? { imageSizes: options.imageSizes, imageRatios: options.imageRatios } : {}),
           mode: model.kind === "image" ? ["text", "singleImage", "multiReference"] : ["text", "startFrameOptional", "endFrameOptional", ["imageReference:64", "videoReference:64", "audioReference:64"]],
           ...video,

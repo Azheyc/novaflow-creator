@@ -22,7 +22,7 @@
       </template>
       <el-form class="modelOptions" labelPosition="top">
         <el-form-item label="模型">
-          <el-select :modelValue="selectedModelChoice ? selectedModel : ''" filterable :disabled="disabled" :teleported="false" placeholder="选择模型" aria-label="选择模型" noDataText="请先在设置中添加模型" @update:modelValue="selectModel" @change="reasoningEffort = ''">
+          <el-select :modelValue="selectedModelChoice ? selectedModel : ''" filterable :disabled="disabled" :teleported="false" placeholder="选择模型" aria-label="选择模型" noDataText="请先在设置中添加模型" @update:modelValue="selectModel">
             <template #prefix><modelIcon v-if="selectedModelChoice" :model="selectedModelChoice.modelId" :size="18" /></template>
             <template #label="{ label }"><modelLabel :label="label" :providerId="selectedModelChoice?.providerId" /></template>
             <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
@@ -39,7 +39,7 @@
           <div class="reasoningSettings">
             <div class="reasoningGrid" role="radiogroup" aria-label="思考强度" :aria-describedby="`${reasoningId}Hint`" :style="{ gridTemplateColumns: `repeat(${reasoningColumns}, minmax(0, 1fr))` }">
               <label v-for="option in reasoningOptions" :key="option.value" class="reasoningOption">
-                <input v-model="reasoningEffort" type="radio" :name="reasoningId" :value="option.value" :disabled="disabled" />
+                <input v-model="reasoningEffort" type="radio" :name="reasoningId" :value="option.value" :disabled="disabled" @change="rememberAgentReasoning(selectedModel, option.value)" />
                 <span class="reasoningOptionLabel">{{ option.label }}</span>
               </label>
             </div>
@@ -58,7 +58,7 @@ import { modelIcon } from "@toonflow/model-icons";
 import { useNodeModelSelection } from "@toonflow/nodes-scaffold/nodeAi";
 import modelLabel from "@toonflow/node-shared/modelLabel";
 import type { ThinkingLevel } from "@toonflow/server/modelReasoning";
-import { getLastAgentModel, modelChoices, refreshModelChoices, rememberAgentModel } from "@/stores/settings";
+import { getAgentReasoning, getLastAgentModel, modelChoices, refreshModelChoices, rememberAgentModel, rememberAgentReasoning } from "@/stores/settings";
 
 const selectedModel = defineModel<string>({ default: "" });
 const reasoningEffort = defineModel<string>("reasoningEffort", { default: "" });
@@ -80,6 +80,12 @@ const reasoningLevels = computed(() => selectedModelChoice.value?.reasoningLevel
 const reasoningOptions = computed(() => [{ label: "默认", value: "" }, ...reasoningLevels.value.map(value => ({ label: reasoningLabels[value], value }))]);
 const reasoningColumns = computed(() => Math.min(4, reasoningOptions.value.length > 4 ? Math.ceil(reasoningOptions.value.length / 2) : reasoningOptions.value.length));
 const reasoningLabel = computed(() => reasoningOptions.value.find(item => item.value === reasoningEffort.value)?.label ?? "默认");
+let previousModel = "";
+watch(selectedModelChoice, choice => {
+  if (!choice || choice.value === previousModel) return;
+  if (previousModel || !reasoningEffort.value) reasoningEffort.value = getAgentReasoning(choice.value);
+  previousModel = choice.value;
+}, { immediate: true, flush: "sync" });
 watch(modelChoices, items => {
   if (!selectedModel.value) selectedModel.value = items.find(item => item.value === getLastAgentModel())?.value ?? items[0]?.value ?? "";
 }, { immediate: true });

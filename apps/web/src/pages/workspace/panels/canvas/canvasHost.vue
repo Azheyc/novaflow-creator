@@ -27,7 +27,7 @@ import { waitForControlValue } from "@/lib/mcpControl";
 import canvasPanel from "./index.vue";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { toonflowAccountToken } from "@/stores/settings";
+import { settingsStorage, toonflowAccountToken } from "@/stores/settings";
 import uploadPluginDialog from "@/components/settings/panels/pluginMarket/uploadPluginDialog.vue";
 import { providePluginUpload } from "@/components/settings/panels/pluginMarket/marketUpload";
 import { createCanvasMention, mentionNodeOutputs, queryMentionNodes, type MentionCanvasSource } from "@toonflow/server/agent/mentionSources";
@@ -46,6 +46,7 @@ const canvasReady = computed(() => activeInstance.value?.canvasReady ?? false);
 const canvasListReady = computed(() => activeInstance.value?.canvasListReady ?? false);
 const lifetime = new AbortController();
 const workspaceStore = useWorkspaceStore();
+provide("mediaNodeDefaultsStorage", settingsStorage);
 const projectDirectory = workspaceStore.project?.directory;
 watch(canvasId, id => {
   if (id && projectDirectory && workspaceStore.project?.directory === projectDirectory) workspaceStore.rememberCanvas(projectDirectory, id);

@@ -134,7 +134,7 @@ async function reviewSeedanceAsset(context: ProviderContext, apiKey: string, bas
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      group: { name: `toonflow-seedance-group-${Date.now()}`, description: "ToonFlow自动创建的Seedance素材组" },
+      group: { name: `novaflow-seedance-group-${Date.now()}`, description: "NovaFlow自动创建的Seedance素材组" },
       project_name: "default",
       asset_type: "Image",
       assets: [{ url, name: `image_${Date.now()}` }],

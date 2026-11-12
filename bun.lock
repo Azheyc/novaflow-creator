@@ -337,6 +337,7 @@
       "name": "@toonflow/mcp",
       "version": "0.0.0",
       "bin": {
+        "novaflow-mcp": "./src/stdio.ts",
         "toonflow-mcp": "./src/stdio.ts",
       },
       "dependencies": {

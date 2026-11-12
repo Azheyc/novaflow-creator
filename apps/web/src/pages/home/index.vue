@@ -276,7 +276,7 @@ async function loadAdvertisements() {
         <circle cx="330" cy="237" r="12" fill="#fff" opacity=".85"/>
         <path d="m495 146 25 14-25 14z" fill="#fff"/>
         <g fill="#fff" font-family="Arial, Microsoft YaHei, sans-serif">
-          <text x="40" y="58" font-size="17" letter-spacing="3" opacity=".7">TOONFLOW · PREVIEW</text>
+          <text x="40" y="58" font-size="17" letter-spacing="3" opacity=".7">NovaFlow · PREVIEW</text>
           <text x="40" y="136" font-size="38" font-weight="bold">${slide.title}</text>
           <text x="40" y="177" font-size="19" opacity=".7">${slide.subtitle}</text>
           <text x="40" y="303" font-size="16" opacity=".6">侧栏轮播预览 · ${index + 1} / 3</text>

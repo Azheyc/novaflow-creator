@@ -122,6 +122,7 @@ import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImage
 import { IconCheck, IconPhotoAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer, IconLayoutGrid, IconBrush, IconPencil, IconSun, IconCameraRotate, IconPanoramaHorizontal, IconChevronDown } from "@tabler/icons-vue";
 import { findNodeModel, getNodeModelIdentity, getNodeModelKey, nodeSkeleton, nodeTools, useNode, useNodeModelSelection, z, type NodeMediaModel, type NodeImageRequest, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import { groupNodeModels } from "@toonflow/node-shared/groupNodeModels";
+import { useMediaDefaults } from "@toonflow/node-shared/useMediaDefaults";
 import { getMediaMimeType } from "@toonflow/node-shared/mediaTypes";
 import modelLabel from "@toonflow/node-shared/modelLabel";
 import { showNodeError } from "@toonflow/node-shared/showNodeError";
@@ -163,6 +164,7 @@ data.value.model ??= "";
 data.value.size ??= "";
 data.value.ratio ??= "16:9";
 data.value.other ??= {};
+const restoreDefaults = useMediaDefaults("image", data);
 const { refList, referenceMentions, materialMentions, selectMaterialReference, selectAssetReference, setReferencePreview, removeReference } = useNodeReferences();
 const models = shallowRef<NodeMediaModel[]>([]);
 const modelsLoading = ref(false);
@@ -302,10 +304,7 @@ function loadModels() {
     if (disposed || generating.value || deleting.value) return;
     models.value = items.filter((item) => item.type === "image");
     // ACT: 只给空配置选默认模型，保留暂时不可用的旧选择及其参数。
-    if (!data.value.model) {
-      const first = modelGroups.value[0]?.models[0];
-      data.value.model = first ? getNodeModelKey(first) : "";
-    }
+    restoreDefaults(modelGroups.value.flatMap(group => group.models));
   }).finally(() => {
     modelsLoading.value = false;
     modelsRequest = undefined;

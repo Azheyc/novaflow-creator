@@ -8,10 +8,11 @@
     "./client": "./src/client.ts",
     "./skill": {
       "types": "./src/skill.d.ts",
-      "default": "./skills/toonflow/SKILL.md"
+      "default": "./skills/novaflow/SKILL.md"
     }
   },
   "bin": {
+    "novaflow-mcp": "./src/stdio.ts",
     "toonflow-mcp": "./src/stdio.ts"
   },
   "scripts": {

@@ -179,7 +179,7 @@ async function copyConfig(transport: "http" | "stdio") {
     headers: { Authorization: `Bearer ${mcpSettings.value.token}` },
   };
   if (!config) return;
-  await copyText(JSON.stringify({ mcpServers: { toonflow: config } }, null, 2), translate("MCP 配置"), transport === "http");
+  await copyText(JSON.stringify({ mcpServers: { NovaFlow: config } }, null, 2), translate("MCP 配置"), transport === "http");
 }
 
 async function copyText(content: string, title: string, hasCredential = false) {
