@@ -21,7 +21,7 @@ export default router.put("/", validateFields({ expectedRevision: z.number().int
   network: u.network.networkSchema.optional(),
   multiTenantEnabled: z.boolean().optional(),
   desktopAutoUpdate: z.boolean().optional(),
-  desktopUpdateSource: z.enum(["official", "github", "custom"]).optional(),
+  desktopUpdateSource: z.enum(["official", "github", "ghProxy", "custom"]).optional(),
   desktopUpdateCustomUrl: z.string().max(2048).refine(value => !value || u.desktop.isValidUpdateUrl(value),
     "自定义更新源必须是不含账号、查询参数或锚点的 HTTP(S) 地址").optional(),
   mcp: z.object({ enabled: z.boolean().optional(), token: z.string().optional(), port: z.number().int().min(1).max(65535).optional() }).optional(),

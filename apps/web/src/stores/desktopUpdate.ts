@@ -7,7 +7,7 @@ import { actualPlatform } from "@/lib/platform";
 export const desktopAutoUpdate = computed(() => settings.value.desktopAutoUpdate !== false);
 export const desktopUpdateCustomUrl = computed(() => typeof settings.value.desktopUpdateCustomUrl === "string" ? settings.value.desktopUpdateCustomUrl : "");
 export const desktopUpdateSource = computed(() => settings.value.desktopUpdateSource === "custom" && desktopUpdateCustomUrl.value ? "custom"
-  : "github");
+  : settings.value.desktopUpdateSource === "ghProxy" ? "ghProxy" : "github");
 export const desktopUpdateKey = computed(() => desktopUpdateSource.value === "custom" ? `custom:${desktopUpdateCustomUrl.value}` : desktopUpdateSource.value);
 export const desktopUpdateSnapshot = shallowRef<updateSnapshot | null>(null);
 export const desktopUpdateAction = ref<"read" | "check" | "download" | "apply" | null>(null);

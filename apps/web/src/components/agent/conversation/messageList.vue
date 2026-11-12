@@ -131,7 +131,7 @@ const messageSections = computed(() => {
     const completed = message.role === "assistant" && !message.streaming && !message.error && !message.report && !message.agentMessage
       && !(running && index > currentTask) && !parts.some(part => part.type === "tool" && part.tool.status === "running");
     const sections: MessageSection[] = completed && boundary >= 0 && finalParts.some(part => part.type === "text" && part.content.trim())
-      ? [{ id: "final", parts: finalParts }, { id: "process", process: true, parts: parts.slice(0, boundary + 1), toolCount: parts.filter(part => part.type === "tool").length }]
+      ? [{ id: "process", process: true, parts: parts.slice(0, boundary + 1), toolCount: parts.filter(part => part.type === "tool").length }, { id: "final", parts: finalParts }]
       : [{ id: "content", parts }];
     return [message.id, sections];
   }));

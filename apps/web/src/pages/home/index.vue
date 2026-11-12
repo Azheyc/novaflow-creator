@@ -119,7 +119,7 @@ import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox, type InputInstance, type ScrollbarInstance } from "element-plus";
 import { getReadableFileMimeType, readableFileAccept } from "@toonflow/server/documentFormats";
 import {
-  IconHome, IconCompass,
+  IconVector, IconCompass,
   IconArrowUp, IconPlus, IconLoader2,
   IconFolder, IconEdit, IconFileZip,
   IconTrash, IconPaperclip,
@@ -155,8 +155,7 @@ const backgroundScrollTop = ref(0);
 const activeSection = ref("home");
 const projectType = ref<"local" | "team">("local");
 const homeSections = [
-  { id: "home", label: "首页", icon: IconHome },
-  { id: "projects", label: "项目", icon: IconFolder },
+  { id: "home", label: "无限画布", icon: IconVector },
   ...(!novaFlowEnabled.value ? [{ id: "explore", label: "探索", icon: IconCompass }] : []),
 ];
 const router = useRouter();
@@ -358,6 +357,7 @@ async function activateAdvertisement(advertisement: HomeAdvertisement) {
 }
 
 function scrollToSection(section: string) {
+  if (section === "projects") section = "home";
   const wrap = pageScroll.value?.wrapRef;
   const target = wrap?.querySelector<HTMLElement>(`[data-home-section="${section}"]`);
   if (!wrap || !target) return;
@@ -372,13 +372,13 @@ function updateActiveSection() {
   const wrap = pageScroll.value?.wrapRef;
   if (!wrap) return;
   backgroundScrollTop.value = wrap.scrollTop;
-  if (wrap.scrollTop > 0 && wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2) {
+  if (!novaFlowEnabled.value && wrap.scrollTop > 0 && wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2) {
     activeSection.value = "explore";
     return;
   }
   const top = wrap.getBoundingClientRect().top + 120;
   for (const section of wrap.querySelectorAll<HTMLElement>("[data-home-section]")) {
-    if (section.getBoundingClientRect().top <= top) activeSection.value = section.dataset.homeSection!;
+    if (section.getBoundingClientRect().top <= top) activeSection.value = section.dataset.homeSection === "projects" ? "home" : section.dataset.homeSection!;
   }
 }
 

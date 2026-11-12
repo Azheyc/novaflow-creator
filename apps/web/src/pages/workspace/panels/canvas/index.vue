@@ -1119,6 +1119,9 @@ function preventMiddleClick(event: MouseEvent) {
 }
 
 function updateCanvasSelection(event: MouseEvent | KeyboardEvent) {
+  if (event.type === "pointerdown" && event instanceof MouseEvent && event.button === 0
+    && event.target instanceof Element && event.target.classList.contains("vue-flow__pane")
+    && props.active && !props.settingsVisible && !handMode.value && !isMobile && selectionKeyPressed.value) event.preventDefault();
   // 失焦期间可能漏掉修饰键；不能在按下到抬起之间改变已命中的选区，避免 click 落到画布清空选择。
   if (event.type === "pointerdown" && event.target instanceof Element && event.target.closest(".vue-flow__nodesselection-rect")) return;
   flow.multiSelectionActive.value = props.active && !props.settingsVisible && !handMode.value

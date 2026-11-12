@@ -20,6 +20,8 @@
 
 关于页面可检查本仓库的版本更新。账号管理与充值前往 [NovaFlow 官网](https://www.ycnovaflow.vip/dashboard)。微信客服：`Azhe_327`。
 
+桌面客户端可在“设置 → 关于 → 更新源”选择“GitHub”或“国内镜像（gh-proxy.com）”。镜像使用 `https://gh-proxy.com/https://github.com/...` 获取同一仓库的更新清单与更新包；切换来源后重新检查更新即可，选择会保存供下次使用。
+
 ## macOS 安装与签名
 
 目前公开发行包适用于 Apple Silicon Mac。2.0.3 起，应用和完整更新归档采用可验证的临时签名（ad hoc）。临时签名不包含 Apple Developer ID，也没有 Apple 公证，不能保证首次下载后直接双击运行。

@@ -11,7 +11,7 @@ export default {
   app: {
     name: "NovaFlow Creator",
     identifier: "vip.ycnovaflow.creator",
-    version: process.env.appVersion ?? "2.0.12",
+    version: process.env.appVersion ?? "2.0.13",
     urlSchemes: ["toonflow"],
   },
   build: {

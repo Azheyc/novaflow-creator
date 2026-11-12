@@ -9,6 +9,7 @@ import { messageError } from "@toonflow/i18n/errors";
 const updateBaseUrls = {
   official: "https://github.com/Azheyc/novaflow-creator/releases/latest/download",
   github: "https://github.com/Azheyc/novaflow-creator/releases/latest/download",
+  ghProxy: "https://gh-proxy.com/https://github.com/Azheyc/novaflow-creator/releases/latest/download",
 };
 const updateRuntimeId = crypto.randomUUID();
 let cancelledUpdateAttempt: string | undefined;
@@ -86,6 +87,7 @@ export function isValidUpdateUrl(value: unknown): value is string {
 function getUpdateBaseUrl(): string {
   const settings = conf.get("settings", {});
   if (settings.desktopUpdateSource === "github") return updateBaseUrls.github;
+  if (settings.desktopUpdateSource === "ghProxy") return updateBaseUrls.ghProxy;
   if (settings.desktopUpdateSource === "custom" && isValidUpdateUrl(settings.desktopUpdateCustomUrl)) return settings.desktopUpdateCustomUrl;
   return updateBaseUrls.official;
 }

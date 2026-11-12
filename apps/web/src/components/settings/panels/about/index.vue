@@ -30,6 +30,7 @@
                 <icon-world v-else :size="14" aria-hidden="true" />
               </template>
               <el-option label="GitHub" value="github" />
+              <el-option label="国内镜像（gh-proxy.com）" value="ghProxy" />
               <el-option v-if="customUpdateUrl" label="自定义源" value="custom" />
             </el-select>
             <el-badge isDot :hidden="!hasDesktopUpdate">
@@ -251,7 +252,7 @@ function openUpdate() {
 async function saveUpdateSource(source: string) {
   if (actualPlatform.isRemoteConnection) return;
   if (source === updateSource.value || sourceSaving.value || working.value) return;
-  if (source !== "official" && source !== "github" && (source !== "custom" || !customUpdateUrl.value)) return;
+  if (source !== "official" && source !== "github" && source !== "ghProxy" && (source !== "custom" || !customUpdateUrl.value)) return;
   sourceSaving.value = true;
   try {
     await saveSettings(() => ({ desktopUpdateSource: source }));
@@ -396,6 +397,7 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
 
         .updateActions {
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
           gap: 8px;
 
@@ -404,7 +406,8 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
           }
 
           :deep(.el-select) {
-            width: 120px;
+            width: 220px;
+            max-width: 100%;
           }
         }
       }
